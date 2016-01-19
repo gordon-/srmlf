@@ -54,6 +54,9 @@ class Project:
                                                      'found in many files')
                                                     .format(project_name))
             self.filename = g[0]
+            self.total = float(os.path.basename(self.filename)
+                               .replace('{}_('.format(base_filename), '')
+                               .replace(').csv', ''))
 
         try:
             self.logger.debug('Opening %s',
@@ -136,11 +139,17 @@ class Project:
         total1 = [locale.currency(float(v)) for v in contribs]
         total2 = []
         for i, amount in enumerate(contribs):
-            total2.append('{:.2f}%'.format((contribs[i] / sum(contribs))*100))
+            if self.total:
+                total2.append('{:.2f}%'.format((contribs[i] / self.total)*100))
+            else:
+                total2.append('{:.2f}%'
+                              .format((contribs[i] / sum(contribs))*100))
         p.add_row(['', colored('TOTAL', attrs=['bold'])]
                   + [colored(str(c), attrs=['bold'])
                      for c in total1])
-        p.add_row(['', '']
+        p.add_row(['', colored('({})'.format(locale.currency(self.total)),
+                               attrs=['bold'])
+                   if self.total is not None else '']
                   + [colored(str(c), attrs=['bold'])
                      for c in total2])
         return p
