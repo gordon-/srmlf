@@ -1,10 +1,11 @@
 import csv
 import os
-import shutil
 import logging
 from collections import OrderedDict
 from glob import glob
-from io import StringIO
+
+from prettytable import PrettyTable
+from termcolor import colored
 
 DATA_DIR = os.path.join(os.getcwd(), 'srmlf_data')
 
@@ -32,6 +33,8 @@ class CorruptedProjectException(SRMLFException):
 class Project:
 
     def __init__(self, project_name):
+        self.data = []
+        self.fieldnames = []
         self.logger = logging.getLogger('srmlf')
         self.name = project_name
         base_filename = project_name.replace('/', '-').replace(' ', '_')
@@ -56,9 +59,6 @@ class Project:
             with open(os.path.join(DATA_DIR, self.filename), 'r') as fd:
                 self.reader = csv.DictReader(fd)
                 try:
-                    self.writer_fd = StringIO()
-                    self.writer = csv.DictWriter(self.writer_fd,
-                                                 self.reader.fieldnames)
                     self._consume_reader()
                 except (KeyError, ValueError) as e:
                     raise CorruptedProjectException(e)
@@ -70,30 +70,49 @@ class Project:
                                            .format(project_name))
 
     def _consume_reader(self):
-        self.writer.writeheader()
+        self.fieldnames = self.reader.fieldnames
         for item in self.reader:
-            self.writer.writerow(item)
+            ordered_item = OrderedDict()
+            for field in self.fieldnames:
+                ordered_item[field] = item.get(field, None)
+            self.data.append(ordered_item)
+
+    def _color(self, k, v):
+        if k == 'Description':
+            return colored(v, 'blue')
+        elif k == 'Date':
+            return colored(v, 'cyan')
+        else:
+            return v
 
     def add_user(self, user):
-        self.writer.fieldnames.append(user)
+        self.fieldnames.append(user)
 
     def add_contribs(self, name, date, contribs):
         line = OrderedDict()
         line['Description'] = name
         line['Date'] = date.strftime('%Y-%m-%d')
         for user, amount in contribs:
-            if user not in self.writer.fieldnames:
+            if user not in self.fieldnames:
                 self.add_user(user)
             line[user] = amount
-        self.writer.writerow(line)
+        self.data.append(line)
 
     def save(self):
         with open(os.path.join(DATA_DIR, self.filename), 'w') as fd:
-            self.writer_fd.seek(0)
-            self.writer.writeheader()
-            self.writer_fd.seek(0)
-            shutil.copyfileobj(self.writer_fd, fd)
-        self.writer_fd.close()
+            writer = csv.DictWriter(fd, self.fieldnames)
+            writer.writeheader()
+            for line in self.data:
+                writer.writerow(line)
+
+    def prettify(self):
+        p = PrettyTable([colored(f, 'red') for f in self.fieldnames])
+        for line in self.data:
+            p.add_row([self._color(k, v) for k, v in line.items()])
+        return p
+
+    def __str__(self):
+        return self.prettify().__str__()
 
     @staticmethod
     def create(project_name, users, total=None):
@@ -102,13 +121,13 @@ class Project:
         if os.path.isfile(os.path.join(DATA_DIR, filename)):
             raise ProjectDuplicateException('Project {} already exists'
                                             .format(project_name))
-        g = glob(os.path.join(DATA_DIR, '{}(*).csv'.format(base_filename)))
+        g = glob(os.path.join(DATA_DIR, '{}_(*).csv'.format(base_filename)))
         if len(g) > 1:
             raise ProjectDuplicateException(('Project {} has been '
                                              'found in many files')
                                             .format(project_name))
         if total is not None:
-            filename = '{}_({}).csv'.format(project_name, total)
+            filename = '{}_({}).csv'.format(base_filename, total)
         with open(os.path.join(DATA_DIR, filename), 'w') as fd:
             writer = csv.DictWriter(fd, ['Description', 'Date'] + users)
             writer.writeheader()

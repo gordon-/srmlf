@@ -86,6 +86,10 @@ def main():
             project.add_contribs(args.label, args.date, args.contribs)
             project.save()
 
+        else:
+            project = Project(args.project_name)
+            print(project)
+
     except SRMLFException as e:
         logger.error(e)
     except Exception as e:
