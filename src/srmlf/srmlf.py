@@ -6,7 +6,7 @@ from datetime import datetime
 
 import coloredlogs
 
-from project import Project, SRMLFException, DATA_DIR
+from .project import Project, SRMLFException, DATA_DIR
 
 
 def valid_date(s):
@@ -92,9 +92,12 @@ def main():
             project.add_contribs(args.label, args.date, args.contribs)
             project.save()
 
-        else:
+        elif args.command == 'view':
             project = Project(args.project_name)
             print(project)
+
+        else:
+            parser.print_help()
 
     except SRMLFException as e:
         logger.error(e)
