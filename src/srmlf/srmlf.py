@@ -5,9 +5,7 @@ from datetime import datetime
 
 import coloredlogs
 
-from project import Project
-
-DATA_DIR = os.path.join(os.getcwd(), 'data')
+from project import Project, SRMLFException, DATA_DIR
 
 
 def valid_date(s):
@@ -55,7 +53,10 @@ def main():
                          action='store')
         add.add_argument('-d', '--date', help='International-formatted date of'
                          ' the contribution you want to create',
+                         default=datetime.now(),
                          type=valid_date)
+        add.add_argument('label', help='Label of the contribution',
+                         type=str)
         add.add_argument('contribs', type=valid_user_contrib,
                          help='User names and amounts',
                          action='store', nargs='+')
@@ -79,9 +80,14 @@ def main():
 
         elif args.command == 'add':
             logger.info('Adding %d contribution%s…',
-                        (len(args.contribs),
-                         's' if len(args.contribs) else ''))
+                        len(args.contribs),
+                        's' if len(args.contribs) > 1 else '')
+            project = Project(args.project_name)
+            project.add_contribs(args.label, args.date, args.contribs)
+            project.save()
 
+    except SRMLFException as e:
+        logger.error(e)
     except Exception as e:
         logger.error(e)
         raise

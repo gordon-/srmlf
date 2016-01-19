@@ -1,8 +1,12 @@
 import csv
 import os
+import shutil
+import logging
+from collections import OrderedDict
 from glob import glob
+from io import StringIO
 
-DATA_DIR = os.path.join(os.getcwd(), 'data')
+DATA_DIR = os.path.join(os.getcwd(), 'srmlf_data')
 
 
 class SRMLFException(Exception):
@@ -21,10 +25,14 @@ class ProjectFileUnreadable(SRMLFException, PermissionError):
     pass
 
 
+class CorruptedProjectException(SRMLFException):
+    pass
+
+
 class Project:
 
     def __init__(self, project_name):
-        self.data = []
+        self.logger = logging.getLogger('srmlf')
         self.name = project_name
         base_filename = project_name.replace('/', '-').replace(' ', '_')
         self.filename = '{}.csv'.format(base_filename)
@@ -43,8 +51,17 @@ class Project:
             self.filename = g[0]
 
         try:
+            self.logger.debug('Opening %s',
+                              os.path.join(DATA_DIR, self.filename))
             with open(os.path.join(DATA_DIR, self.filename), 'r') as fd:
-                self.data = csv.DictReader(fd)
+                self.reader = csv.DictReader(fd)
+                try:
+                    self.writer_fd = StringIO()
+                    self.writer = csv.DictWriter(self.writer_fd,
+                                                 self.reader.fieldnames)
+                    self._consume_reader()
+                except (KeyError, ValueError) as e:
+                    raise CorruptedProjectException(e)
         except FileNotFoundError:
             raise ProjectNotFoundException('Project {} is not found.'
                                            .format(project_name))
@@ -52,8 +69,31 @@ class Project:
             raise ProjectNotFoundException('Project {} is not found.'
                                            .format(project_name))
 
+    def _consume_reader(self):
+        self.writer.writeheader()
+        for item in self.reader:
+            self.writer.writerow(item)
+
     def add_user(self, user):
-        pass
+        self.writer.fieldnames.append(user)
+
+    def add_contribs(self, name, date, contribs):
+        line = OrderedDict()
+        line['Description'] = name
+        line['Date'] = date.strftime('%Y-%m-%d')
+        for user, amount in contribs:
+            if user not in self.writer.fieldnames:
+                self.add_user(user)
+            line[user] = amount
+        self.writer.writerow(line)
+
+    def save(self):
+        with open(os.path.join(DATA_DIR, self.filename), 'w') as fd:
+            self.writer_fd.seek(0)
+            self.writer.writeheader()
+            self.writer_fd.seek(0)
+            shutil.copyfileobj(self.writer_fd, fd)
+        self.writer_fd.close()
 
     @staticmethod
     def create(project_name, users, total=None):
