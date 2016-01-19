@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import locale
 from datetime import datetime
 
 import coloredlogs
@@ -10,7 +11,7 @@ from project import Project, SRMLFException, DATA_DIR
 
 def valid_date(s):
     try:
-        return datetime.strptime(s, "%Y-%m-%d")
+        return datetime.strptime(s, locale.nl_langinfo(locale.D_FMT))
     except ValueError:
         msg = "Not a valid date: '{}'.".format(s)
         raise argparse.ArgumentTypeError(msg)
@@ -27,6 +28,9 @@ def valid_user_contrib(s):
 
 
 def main():
+    pref_locale = locale.getlocale()[0]
+    locale.setlocale(locale.LC_TIME, pref_locale)
+    locale.setlocale(locale.LC_MONETARY, pref_locale)
 
     logger = logging.getLogger('srmlf')
     coloredlogs.install(fmt='%(message)s',
@@ -51,8 +55,10 @@ def main():
         add = commands.add_parser('add', aliases=['a'])
         add.add_argument('project_name', help='Project to use',
                          action='store')
-        add.add_argument('-d', '--date', help='International-formatted date of'
-                         ' the contribution you want to create',
+        add.add_argument('-d', '--date', help='date of the contribution you '
+                         'want to create (format: {})'
+                         .format(locale.nl_langinfo(locale.D_FMT)
+                                 .replace('%', '%%')),
                          default=datetime.now(),
                          type=valid_date)
         add.add_argument('label', help='Label of the contribution',
