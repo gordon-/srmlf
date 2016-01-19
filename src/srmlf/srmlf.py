@@ -39,8 +39,6 @@ def main():
                                          'accountability tracker')
         parser.add_argument('-v', '--verbose', help='Show debug info',
                             action='store_true', dest='verbose')
-        parser.add_argument('project_name', help='Project to use',
-                            action='store')
 
         commands = parser.add_subparsers(help='Commands help', dest='command')
         init = commands.add_parser('init', aliases=['i'])
@@ -50,7 +48,7 @@ def main():
                           type=int,
                           action='store')
         init.add_argument('users', help='Names of users', type=str,
-                          action='store')
+                          action='store', nargs='+')
 
         add = commands.add_parser('add', aliases=['a'])
         add.add_argument('project_name', help='Project to use',
@@ -78,6 +76,11 @@ def main():
         if args.command == 'init':
             logger.info('Creating project %s…', args.project_name)
             Project.create(args.project_name, args.users, args.total)
+
+        elif args.command == 'add':
+            logger.info('Adding %d contribution%s…',
+                        (len(args.contribs),
+                         's' if len(args.contribs) else ''))
 
     except Exception as e:
         logger.error(e)

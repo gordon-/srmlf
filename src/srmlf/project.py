@@ -30,7 +30,8 @@ class Project:
         self.filename = '{}.csv'.format(base_filename)
         self.total = None
         if not os.path.isfile(os.path.join(DATA_DIR, self.filename)):
-            g = glob(os.path.join(DATA_DIR, '{}(*).csv'.format(base_filename)))
+            g = glob(os.path.join(DATA_DIR,
+                                  '{}_(*).csv'.format(base_filename)))
             if len(g) != 1:
                 if len(g) == 0:
                     raise ProjectNotFoundException('Project {} is not found.'
@@ -42,7 +43,7 @@ class Project:
             self.filename = g[0]
 
         try:
-            with open(os.path.join(DATA_DIR, self.filename, 'rb')) as fd:
+            with open(os.path.join(DATA_DIR, self.filename), 'r') as fd:
                 self.data = csv.DictReader(fd)
         except FileNotFoundError:
             raise ProjectNotFoundException('Project {} is not found.'
@@ -54,8 +55,8 @@ class Project:
     def add_user(self, user):
         pass
 
-    @classmethod
-    def create(cls, project_name, total=None):
+    @staticmethod
+    def create(project_name, users, total=None):
         base_filename = project_name.replace('/', '-').replace(' ', '_')
         filename = '{}.csv'.format(base_filename)
         if os.path.isfile(os.path.join(DATA_DIR, filename)):
@@ -68,7 +69,7 @@ class Project:
                                             .format(project_name))
         if total is not None:
             filename = '{}_({}).csv'.format(project_name, total)
-        with open(os.path.join(DATA_DIR, filename), 'wb') as fd:
-            writer = csv.DictWriter(fd)
-            writer.write_rows([project_name, 'Date'])
+        with open(os.path.join(DATA_DIR, filename), 'w') as fd:
+            writer = csv.DictWriter(fd, ['Description', 'Date'] + users)
+            writer.writeheader()
         return Project(project_name)
