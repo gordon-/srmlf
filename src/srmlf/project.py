@@ -1,10 +1,12 @@
 import csv
 import os
 import logging
+import locale
 from collections import OrderedDict
 from glob import glob
+from datetime import datetime
 
-from prettytable import PrettyTable
+import prettytable
 from termcolor import colored
 
 DATA_DIR = os.path.join(os.getcwd(), 'srmlf_data')
@@ -69,6 +71,10 @@ class Project:
             raise ProjectNotFoundException('Project {} is not found.'
                                            .format(project_name))
 
+        pref_locale = locale.getlocale()[0]
+        locale.setlocale(locale.LC_TIME, pref_locale)
+        locale.setlocale(locale.LC_MONETARY, pref_locale)
+
     def _consume_reader(self):
         self.fieldnames = self.reader.fieldnames
         for item in self.reader:
@@ -77,13 +83,18 @@ class Project:
                 ordered_item[field] = item.get(field, None)
             self.data.append(ordered_item)
 
-    def _color(self, k, v):
+    def _format(self, k, v):
         if k == 'Description':
             return colored(v, 'blue')
         elif k == 'Date':
-            return colored(v, 'cyan')
+            date = datetime.strptime(v, '%Y-%m-%d')\
+                .strftime(locale.nl_langinfo(locale.D_FMT))
+            return colored(date, 'cyan')
         else:
-            return v
+            if v != '':
+                return locale.currency(float(v))
+            else:
+                return v
 
     def add_user(self, user):
         self.fieldnames.append(user)
@@ -98,6 +109,14 @@ class Project:
             line[user] = amount
         self.data.append(line)
 
+    def get_total_contribs(self):
+        contribs = OrderedDict()
+        for item in self.data:
+            for k, v in item.items():
+                if k not in ['Description', 'Date'] and v != '':
+                    contribs[k] = contribs.get(k, 0) + float(v)
+        return list(contribs.values())
+
     def save(self):
         with open(os.path.join(DATA_DIR, self.filename), 'w') as fd:
             writer = csv.DictWriter(fd, self.fieldnames)
@@ -106,9 +125,24 @@ class Project:
                 writer.writerow(line)
 
     def prettify(self):
-        p = PrettyTable([colored(f, 'red') for f in self.fieldnames])
+        p = prettytable.PrettyTable([colored(f, 'red')
+                                     for f in self.fieldnames])
         for line in self.data:
-            p.add_row([self._color(k, v) for k, v in line.items()])
+            p.add_row([self._format(k, v) for k, v in line.items()])
+
+        # sum up the total
+        # p.hrules = prettytable.ALL
+        contribs = self.get_total_contribs()
+        total1 = [locale.currency(float(v)) for v in contribs]
+        total2 = []
+        for i, amount in enumerate(contribs):
+            total2.append('{:.2f}%'.format((contribs[i] / sum(contribs))*100))
+        p.add_row(['', colored('TOTAL', attrs=['bold'])]
+                  + [colored(str(c), attrs=['bold'])
+                     for c in total1])
+        p.add_row(['', '']
+                  + [colored(str(c), attrs=['bold'])
+                     for c in total2])
         return p
 
     def __str__(self):
