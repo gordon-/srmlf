@@ -12,7 +12,7 @@ env:
  - TOX_ENV=py35
  - TOX_ENV=flake8
 install:
- - pip install tox python-coveralls
+ - pip install tox coveralls
 script:
  - tox -e $TOX_ENV
  - coverage run setup.py test
