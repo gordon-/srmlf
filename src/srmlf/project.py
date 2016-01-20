@@ -74,10 +74,6 @@ class Project:
             raise ProjectNotFoundException('Project {} is not found.'
                                            .format(project_name))
 
-        pref_locale = locale.getlocale()[0]
-        locale.setlocale(locale.LC_TIME, pref_locale)
-        locale.setlocale(locale.LC_MONETARY, pref_locale)
-
     def _consume_reader(self):
         self.fieldnames = self.reader.fieldnames
         for item in self.reader:
@@ -144,14 +140,12 @@ class Project:
             else:
                 total2.append('{:.2f}%'
                               .format((contribs[i] / sum(contribs))*100))
-        p.add_row(['', colored('TOTAL', attrs=['bold'])]
-                  + [colored(str(c), attrs=['bold'])
-                     for c in total1])
+        p.add_row(['', colored('TOTAL', attrs=['bold'])] +
+                  [colored(str(c), attrs=['bold']) for c in total1])
         p.add_row(['', colored('({})'.format(locale.currency(self.total)),
                                attrs=['bold'])
-                   if self.total is not None else '']
-                  + [colored(str(c), attrs=['bold'])
-                     for c in total2])
+                   if self.total is not None else ''] +
+                  [colored(str(c), attrs=['bold']) for c in total2])
         return p
 
     def __str__(self):

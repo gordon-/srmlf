@@ -1,1 +1,1 @@
-from .srmlf import main
+from .srmlf import main  # noqa
