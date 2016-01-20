@@ -1,6 +1,10 @@
 SRMLF
 =====
 
+.. image:: https://travis-ci.org/gordon-/srmlf.svg?branch=master
+    :target: https://travis-ci.org/gordon-/srmlf
+.. image:: https://coveralls.io/repos/github/gordon-/srmlf/badge.svg?branch=master :target: https://coveralls.io/github/gordon-/srmlf?branch=master
+
 Short Reckonings Make Long Friends — a lightweight reckoning tracker written in
 Python
 
