@@ -17,5 +17,5 @@ script:
  - tox -e $TOX_ENV
  - coverage run setup.py test
 
-after_sucess:
+after_success:
  - coveralls
