@@ -27,6 +27,8 @@ def get_requirements(path):
 
 
 requirements, dependency_links = get_requirements('requirements.txt')
+dev_requirements, dev_dependency_links = \
+    get_requirements('dev-requirements.txt')
 
 setuptools.setup(name='srmlf',
                  version='0.1.0',
@@ -43,6 +45,11 @@ setuptools.setup(name='srmlf',
                  entry_points={'console_scripts': [
                      'srmlf = srmlf:main',
                  ]},
+                 extras_require={
+                     'dev': dev_requirements
+                 },
+                 setup_requires=['pytest-runner'],
+                 tests_require=['pytest'],
                  license='GPLv3',
                  zip_safe=False,
                  keywords='cli reckoning tool',

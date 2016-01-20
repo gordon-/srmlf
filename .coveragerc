@@ -1,0 +1,6 @@
+[run]
+branch = true
+source = srmlf
+
+[report]
+fail_under = 70

@@ -1,0 +1,20 @@
+# We do not use sudo
+sudo: false
+
+# Python versions for matrix
+language: python
+python:
+  - "3.3"
+  - "3.4"
+  - "3.5"
+
+env:
+ - TOX_ENV=py33
+ - TOX_ENV=py34
+ - TOX_ENV=py35
+ - TOX_ENV=flake8
+ - TOX_ENV=coverage
+install:
+ - pip install tox
+script:
+ - tox -e $TOX_ENV
