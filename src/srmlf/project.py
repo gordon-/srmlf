@@ -9,27 +9,11 @@ from datetime import datetime
 import prettytable
 from termcolor import colored
 
+from .exceptions import \
+    (ProjectNotFoundException, ProjectDuplicateException,
+     ProjectFileUnreadableException, CorruptedProjectException)
+
 DATA_DIR = os.path.join(os.getcwd(), 'srmlf_data')
-
-
-class SRMLFException(Exception):
-    pass
-
-
-class ProjectNotFoundException(SRMLFException):
-    pass
-
-
-class ProjectDuplicateException(SRMLFException):
-    pass
-
-
-class ProjectFileUnreadable(SRMLFException, PermissionError):
-    pass
-
-
-class CorruptedProjectException(SRMLFException):
-    pass
 
 
 class Project:
@@ -71,8 +55,8 @@ class Project:
             raise ProjectNotFoundException('Project {} is not found.'
                                            .format(project_name))
         except PermissionError:
-            raise ProjectNotFoundException('Project {} is not found.'
-                                           .format(project_name))
+            raise ProjectFileUnreadableException('Project {} is not found.'
+                                                 .format(project_name))
 
     def _consume_reader(self):
         self.fieldnames = self.reader.fieldnames

@@ -6,7 +6,8 @@ from datetime import datetime
 
 import coloredlogs
 
-from .project import Project, SRMLFException, DATA_DIR
+from .project import Project, DATA_DIR
+from .exceptions import SRMLFException
 
 
 def valid_date(s):
