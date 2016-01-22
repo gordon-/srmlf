@@ -3,7 +3,7 @@ import os
 import logging
 import locale
 from collections import OrderedDict
-from glob import glob
+import glob
 from datetime import datetime
 
 import prettytable
@@ -27,8 +27,8 @@ class Project:
         self.filename = '{}.csv'.format(base_filename)
         self.total = None
         if not os.path.isfile(os.path.join(DATA_DIR, self.filename)):
-            g = glob(os.path.join(DATA_DIR,
-                                  '{}_(*).csv'.format(base_filename)))
+            g = glob.glob(os.path.join(DATA_DIR,
+                                       '{}_(*).csv'.format(base_filename)))
             if len(g) != 1:
                 if len(g) == 0:
                     raise ProjectNotFoundException('Project {} is not found.'
@@ -60,27 +60,40 @@ class Project:
 
     def _consume_reader(self):
         self.fieldnames = self.reader.fieldnames
+        if 'Description' not in self.fieldnames or 'Date' not in\
+                self.fieldnames:
+            raise KeyError('Invalid CSV fieldnames')
         for item in self.reader:
             ordered_item = OrderedDict()
             for field in self.fieldnames:
-                ordered_item[field] = item.get(field, None)
+                val = item.get(field, '')
+                if field == 'Date':
+                    val = datetime.strptime(val, '%Y-%m-%d')
+                elif field != 'Description':
+                    val = float(val) if val != '' else 0.0
+                ordered_item[field] = val
             self.data.append(ordered_item)
 
     def _format(self, k, v):
         if k == 'Description':
             return colored(v, 'blue')
         elif k == 'Date':
-            date = datetime.strptime(v, '%Y-%m-%d')\
-                .strftime(locale.nl_langinfo(locale.D_FMT))
+            if not isinstance(v, datetime):
+                raise ValueError('\s is not a valid date', v)
+            date = v.strftime(locale.nl_langinfo(locale.D_FMT))
             return colored(date, 'cyan')
         else:
-            if v != '':
-                return locale.currency(float(v))
+            if v != 0:
+                return locale.currency(v)
             else:
-                return v
+                return ''
 
     def add_user(self, user):
+        if user in self.fieldnames:
+            return
         self.fieldnames.append(user)
+        for i, line in enumerate(self.data):
+            self.data[i][user] = 0
 
     def add_contribs(self, name, date, contribs):
         line = OrderedDict()
@@ -142,7 +155,8 @@ class Project:
         if os.path.isfile(os.path.join(DATA_DIR, filename)):
             raise ProjectDuplicateException('Project {} already exists'
                                             .format(project_name))
-        g = glob(os.path.join(DATA_DIR, '{}_(*).csv'.format(base_filename)))
+        g = glob.glob(os.path.join(DATA_DIR,
+                      '{}_(*).csv'.format(base_filename)))
         if len(g) > 1:
             raise ProjectDuplicateException(('Project {} has been '
                                              'found in many files')

@@ -1,6 +1,6 @@
 [run]
 branch = true
-source = srmlf
+source = src/srmlf
 
 [report]
 fail_under = 70
