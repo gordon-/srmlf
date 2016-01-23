@@ -10,6 +10,7 @@ from datetime import datetime
 import pytest
 
 from srmlf import project
+from localemock import LocaleMock
 
 
 @pytest.fixture
@@ -155,16 +156,21 @@ def test_format():
     proj = Mock()
     with patch('srmlf.project.colored',
                side_effect=lambda v, c: '{c}: {v}'.format(v=v, c=c)):
-        val = project.Project._format(proj, 'Description', 'test')
-        assert val == 'blue: test'
+        with LocaleMock('fr_FR', [locale.LC_TIME, locale.LC_MONETARY]):
+            val = project.Project._format(proj, 'Description', 'test')
+            assert val == 'blue: test'
 
-        with pytest.raises(ValueError):
-            val = project.Project._format(proj, 'Date', 'test')
+            with pytest.raises(ValueError):
+                val = project.Project._format(proj, 'Date', 'test')
 
-        val = project.Project._format(proj, 'Date',
-                                      datetime(2016, 1, 22))
-        assert val == 'cyan: {}'.format(datetime(2016, 1, 22).strftime(
-            locale.nl_langinfo(locale.D_FMT)))
+            val = project.Project._format(proj, 'Date',
+                                          datetime(2016, 1, 22))
+            assert val == 'cyan: {}'.format(datetime(2016, 1, 22).strftime(
+                locale.nl_langinfo(locale.D_FMT)))
+            val = project.Project._format(proj, 'Alice', 10.0)
+            assert val == locale.currency(10.0)
+            val = project.Project._format(proj, 'Alice', 0.0)
+            assert val == ''
 
 
 def test_add_user(project_1_fixture):
@@ -173,3 +179,6 @@ def test_add_user(project_1_fixture):
     assert 'Régis' in project_1_fixture.fieldnames
     assert len(project_1_fixture.data) > 0
     assert 'Régis' in project_1_fixture.data[0].keys()
+
+    project_1_fixture.add_user('Date')
+    assert len(project_1_fixture.fieldnames) == 5
