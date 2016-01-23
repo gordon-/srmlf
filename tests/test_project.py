@@ -156,7 +156,7 @@ def test_format():
     proj = Mock()
     with patch('srmlf.project.colored',
                side_effect=lambda v, c: '{c}: {v}'.format(v=v, c=c)):
-        with LocaleMock('fr_FR', [locale.LC_TIME, locale.LC_MONETARY]):
+        with LocaleMock(('en_US', 'UTF-8'), [locale.LC_TIME, locale.LC_MONETARY]):
             val = project.Project._format(proj, 'Description', 'test')
             assert val == 'blue: test'
 
