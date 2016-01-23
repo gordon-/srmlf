@@ -35,7 +35,7 @@ def test_tuple_locale():
     old_locale = locale.getlocale()
     lm = LocaleMock(('POSIX', None))
     assert lm.old_locales[locale.LC_CTYPE] == old_locale
-    lm = LocaleMock(('fr_FR', 'utf-8'))
+    lm = LocaleMock(('fr_FR', 'UTF-8'))
     assert lm.old_locales[locale.LC_CTYPE] == old_locale
 
 
@@ -47,18 +47,18 @@ def test_new_locale():
 
 def test_new_locale_with_category():
     old_locale = locale.getlocale(locale.LC_MONETARY)
-    lm = LocaleMock('fr_FR', [locale.LC_TIME])
+    lm = LocaleMock(('fr_FR', 'UTF-8'), [locale.LC_TIME])
     lm.__enter__()
-    assert locale.getlocale(locale.LC_TIME)[0] == 'fr_FR'
+    assert locale.getlocale(locale.LC_TIME) == ('fr_FR', 'UTF-8')
     assert locale.getlocale(locale.LC_MONETARY) == old_locale
 
 
 def test_new_locale_with_multiple_categories():
     old_locale = locale.getlocale(locale.LC_MESSAGES)
-    lm = LocaleMock('fr_FR', [locale.LC_TIME, locale.LC_MONETARY])
+    lm = LocaleMock(('fr_FR', 'UTF-8'), [locale.LC_TIME, locale.LC_MONETARY])
     lm.__enter__()
-    assert locale.getlocale(locale.LC_TIME)[0] == 'fr_FR'
-    assert locale.getlocale(locale.LC_MONETARY)[0] == 'fr_FR'
+    assert locale.getlocale(locale.LC_TIME) == ('fr_FR', 'UTF-8')
+    assert locale.getlocale(locale.LC_MONETARY) == ('fr_FR', 'UTF-8')
     assert locale.getlocale(locale.LC_MESSAGES) == old_locale
 
 
@@ -87,6 +87,6 @@ def test_exit():
 
 def test_with_statement():
     old_locale = locale.getlocale()
-    with LocaleMock('fr_FR'):
-        assert locale.getlocale()[0] == 'fr_FR'
+    with LocaleMock(('fr_FR', 'UTF-8')):
+        assert locale.getlocale() == ('fr_FR', 'UTF-8')
     assert locale.getlocale() == old_locale
