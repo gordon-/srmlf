@@ -95,14 +95,18 @@ class Project:
         for i, line in enumerate(self.data):
             self.data[i][user] = 0
 
-    def add_contribs(self, name, date, contribs):
+    def add_contribs(self, name, contribs, date=None):
+        if date is None:
+            date = datetime.now()
         line = OrderedDict()
+        for field in self.fieldnames:
+            line[field] = 0.0
         line['Description'] = name
         line['Date'] = date.strftime('%Y-%m-%d')
         for user, amount in contribs:
             if user not in self.fieldnames:
                 self.add_user(user)
-            line[user] = amount
+            line[user] = float(amount)
         self.data.append(line)
 
     def get_total_contribs(self):

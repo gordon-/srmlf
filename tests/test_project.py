@@ -35,7 +35,13 @@ def project_1_fixture():
     return p
 
 
-def test_project_not_fount():
+def raiser(exc):
+    def raiser_fn(*args, **kwargs):
+        raise exc()
+    return raiser_fn
+
+
+def test_project_not_found():
     with pytest.raises(project.ProjectNotFoundException):
         project.Project('test')
 
@@ -89,8 +95,31 @@ def test_project_init(project_file_1_fixture):
                 project.Project._consume_reader = consume
 
 
-def test_project_with_total_init(project_file_1_fixture):
+def test_project_init_errors(project_file_1_fixture):
+    op = Mock()
+    op.side_effect = raiser(FileNotFoundError)
+    op.return_value = project_file_1_fixture
+    with patch('srmlf.project.open', op, create=True):
+        isfile = Mock()
+        isfile.return_value = True
+        with patch('os.path.isfile', isfile, create=True):
+            with pytest.raises(project.ProjectNotFoundException):
+                project.Project('test')
 
+
+def test_project_init_errors_2(project_file_1_fixture):
+    op = Mock()
+    op.side_effect = raiser(PermissionError)
+    op.return_value = project_file_1_fixture
+    with patch('srmlf.project.open', op, create=True):
+        isfile = Mock()
+        isfile.return_value = True
+        with patch('os.path.isfile', isfile, create=True):
+            with pytest.raises(project.ProjectFileUnreadableException):
+                project.Project('test')
+
+
+def test_project_with_total_init(project_file_1_fixture):
     op = Mock()
     op.return_value = project_file_1_fixture
     with patch('srmlf.project.open', op, create=True):
@@ -156,7 +185,8 @@ def test_format():
     proj = Mock()
     with patch('srmlf.project.colored',
                side_effect=lambda v, c: '{c}: {v}'.format(v=v, c=c)):
-        with LocaleMock(('en_US', 'UTF-8'), [locale.LC_TIME, locale.LC_MONETARY]):
+        with LocaleMock(('en_US', 'UTF-8'), [locale.LC_TIME,
+                                             locale.LC_MONETARY]):
             val = project.Project._format(proj, 'Description', 'test')
             assert val == 'blue: test'
 
@@ -182,3 +212,34 @@ def test_add_user(project_1_fixture):
 
     project_1_fixture.add_user('Date')
     assert len(project_1_fixture.fieldnames) == 5
+
+
+def test_add_contribs(project_1_fixture):
+    project_1_fixture.add_contribs('test', [('Alice', 30)],
+                                   datetime(2016, 1, 22))
+    assert len(project_1_fixture.data) == 3
+    assert 'Alice' in project_1_fixture.data[2]
+    assert project_1_fixture.data[2]['Alice'] == 30.0
+    assert project_1_fixture.data[2]['Bob'] == 0.0
+    assert project_1_fixture.data[2]['Date'] == '2016-01-22'
+
+
+def test_add_contrib_today(project_1_fixture):
+    project_1_fixture.add_contribs('test', [('Alice', 30)])
+
+    assert project_1_fixture.data[2]['Date'] ==\
+        datetime.now().strftime('%Y-%m-%d')
+
+
+def test_add_contrib_new_user(project_1_fixture):
+    project_1_fixture.add_contribs('test', [('John Doe', 1)])
+    assert 'John Doe' in project_1_fixture.data[2]
+    assert project_1_fixture.data[2]['John Doe'] == 1.0
+
+
+def test_add_contrib_multiple_user(project_1_fixture):
+    project_1_fixture.add_contribs('test', [('John Doe', 1), ('Alice', 20.1)])
+    assert 'John Doe' in project_1_fixture.data[2]
+    assert project_1_fixture.data[2]['John Doe'] == 1.0
+    assert 'Alice' in project_1_fixture.data[2]
+    assert project_1_fixture.data[2]['Alice'] == 20.1
