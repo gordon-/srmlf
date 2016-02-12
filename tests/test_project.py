@@ -2,7 +2,7 @@ import shutil
 import os
 import csv
 import locale
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, patch, call
 from io import StringIO
 from collections import OrderedDict
 from datetime import datetime
@@ -221,14 +221,14 @@ def test_add_contribs(project_1_fixture):
     assert 'Alice' in project_1_fixture.data[2]
     assert project_1_fixture.data[2]['Alice'] == 30.0
     assert project_1_fixture.data[2]['Bob'] == 0.0
-    assert project_1_fixture.data[2]['Date'] == '2016-01-22'
+    assert project_1_fixture.data[2]['Date'] == datetime(2016, 1, 22)
 
 
 def test_add_contrib_today(project_1_fixture):
     project_1_fixture.add_contribs('test', [('Alice', 30)])
 
     assert project_1_fixture.data[2]['Date'] ==\
-        datetime.now().strftime('%Y-%m-%d')
+        datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def test_add_contrib_new_user(project_1_fixture):
@@ -243,3 +243,63 @@ def test_add_contrib_multiple_user(project_1_fixture):
     assert project_1_fixture.data[2]['John Doe'] == 1.0
     assert 'Alice' in project_1_fixture.data[2]
     assert project_1_fixture.data[2]['Alice'] == 20.1
+
+
+def test_get_total_contribs(project_1_fixture):
+    contribs = project_1_fixture.get_total_contribs()
+    assert isinstance(contribs, list)
+    assert len(contribs) == 2
+    assert contribs[0] == 10
+    assert contribs[1] == 5
+    project_1_fixture.add_contribs('test', [('Alice', 30)])
+    contribs = project_1_fixture.get_total_contribs()
+    assert contribs[0] == 40
+    assert contribs[1] == 5
+
+
+def test_save(project_1_fixture):
+    with patch('srmlf.project.open', create=True):
+        dw = Mock()
+        dw_obj = MagicMock()
+        dw.return_value = dw_obj
+        with patch('csv.DictWriter', dw, create=True) as dw:
+            project_1_fixture.save()
+            assert dw_obj.writerow.call_count == 2
+            calls = [call(OrderedDict([
+                ('Description', 'First contribution'),
+                ('Date', datetime(2016, 1, 21)),
+                ('Alice',  10.0),
+                ('Bob',  0)])),
+                call(OrderedDict([
+                    ('Description', 'Second contribution'),
+                    ('Date', datetime(2016, 1, 22)),
+                    ('Alice',  0),
+                    ('Bob',  5.0)]))
+                ]
+            dw_obj.writerow.assert_has_calls(calls)
+
+
+def test_str(project_1_fixture):
+    project_1_fixture.prettify = Mock()
+    project_1_fixture.__str__()
+    assert project_1_fixture.prettify.call_count == 1
+
+    '{}'.format(project_1_fixture)
+
+    assert project_1_fixture.prettify.call_count == 2
+
+
+def test_prettify(project_1_fixture):
+    def colored_side_effect(v, c='', **kwargs):
+        return '{}: {}{}'.format(c, v, kwargs)
+    with patch('srmlf.project.colored',
+               side_effect=colored_side_effect) as clrd:
+        with patch('prettytable.PrettyTable') as pt:
+            table = project_1_fixture.prettify()
+            clrd.assert_has_call(['red: Description',
+                                  'red: Date',
+                                  'red: Alice',
+                                  'red: Bob'])
+
+            assert isinstance(table, MagicMock)
+            assert table.add_row.call_count == 4

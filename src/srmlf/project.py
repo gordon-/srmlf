@@ -102,7 +102,7 @@ class Project:
         for field in self.fieldnames:
             line[field] = 0.0
         line['Description'] = name
-        line['Date'] = date.strftime('%Y-%m-%d')
+        line['Date'] = date.replace(hour=0, minute=0, second=0, microsecond=0)
         for user, amount in contribs:
             if user not in self.fieldnames:
                 self.add_user(user)
