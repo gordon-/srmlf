@@ -296,10 +296,10 @@ def test_prettify(project_1_fixture):
                side_effect=colored_side_effect) as clrd:
         with patch('prettytable.PrettyTable') as pt:
             table = project_1_fixture.prettify()
-            clrd.assert_has_call(['red: Description',
-                                  'red: Date',
-                                  'red: Alice',
-                                  'red: Bob'])
+            pt.assert_any_call(['red: Description{}',
+                                'red: Date{}',
+                                'red: Alice{}',
+                                'red: Bob{}'])
 
             assert isinstance(table, MagicMock)
             assert table.add_row.call_count == 4
