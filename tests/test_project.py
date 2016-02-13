@@ -35,6 +35,22 @@ def project_1_fixture():
     return p
 
 
+@pytest.fixture
+def project_2_fixture():
+    fd = project_file_1_fixture()
+    op = Mock()
+    op.return_value = fd
+    with patch('srmlf.project.open', op, create=True):
+        isfile = Mock()
+        isfile.return_value = False
+        with patch('os.path.isfile', isfile, create=True):
+            glob = Mock()
+            glob.return_value = ['test_(100).csv']
+            with patch('glob.glob', glob, create=True):
+                p = project.Project('test')
+    return p
+
+
 def raiser(exc):
     def raiser_fn(*args, **kwargs):
         raise exc()
@@ -293,13 +309,47 @@ def test_prettify(project_1_fixture):
     def colored_side_effect(v, c='', **kwargs):
         return '{}: {}{}'.format(c, v, kwargs)
     with patch('srmlf.project.colored',
-               side_effect=colored_side_effect) as clrd:
+               side_effect=colored_side_effect):
         with patch('prettytable.PrettyTable') as pt:
-            table = project_1_fixture.prettify()
-            pt.assert_any_call(['red: Description{}',
-                                'red: Date{}',
-                                'red: Alice{}',
-                                'red: Bob{}'])
+            with LocaleMock(('en_US', 'UTF-8'), [locale.LC_TIME,
+                                                 locale.LC_MONETARY]):
+                table = project_1_fixture.prettify()
+                pt.assert_any_call(['red: Description{}',
+                                    'red: Date{}',
+                                    'red: Alice{}',
+                                    'red: Bob{}'])
 
-            assert isinstance(table, MagicMock)
-            assert table.add_row.call_count == 4
+                assert isinstance(table, MagicMock)
+                assert table.add_row.call_count == 4
+                table.add_row.assert_any_call(
+                    ['',
+                     ': TOTAL{\'attrs\': [\'bold\']}',
+                     ': %s{\'attrs\': [\'bold\']}'
+                     % locale.currency(10.0),
+                     ': %s{\'attrs\': [\'bold\']}'
+                     % locale.currency(5.0)
+                     ])
+                table.add_row.assert_any_call(
+                    ['',
+                     '',
+                     ': 66.67%{\'attrs\': [\'bold\']}',
+                     ': 33.33%{\'attrs\': [\'bold\']}'
+                     ])
+
+
+def test_prettify_with_total(project_2_fixture):
+    def colored_side_effect(v, c='', **kwargs):
+        return '{}: {}{}'.format(c, v, kwargs)
+    with patch('srmlf.project.colored',
+               side_effect=colored_side_effect):
+        with patch('prettytable.PrettyTable'):
+            with LocaleMock(('en_US', 'UTF-8'), [locale.LC_TIME,
+                                                 locale.LC_MONETARY]):
+                table = project_2_fixture.prettify()
+                table.add_row.assert_any_call(
+                    ['',
+                     ': (%s){\'attrs\': [\'bold\']}'
+                     % locale.currency(100.0),
+                     ': 10.00%{\'attrs\': [\'bold\']}',
+                     ': 5.00%{\'attrs\': [\'bold\']}'
+                     ])

@@ -141,10 +141,12 @@ class Project:
             else:
                 total2.append('{:.2f}%'
                               .format((contribs[i] / sum(contribs))*100))
-        p.add_row(['', colored('TOTAL', attrs=['bold'])] +
+        p.add_row(['',
+                   colored('TOTAL', attrs=['bold'])] +
                   [colored(str(c), attrs=['bold']) for c in total1])
-        p.add_row(['', colored('({})'.format(locale.currency(self.total)),
-                               attrs=['bold'])
+        p.add_row(['',
+                   colored('({})'.format(locale.currency(self.total)),
+                           attrs=['bold'])
                    if self.total is not None else ''] +
                   [colored(str(c), attrs=['bold']) for c in total2])
         return p
